@@ -41,21 +41,22 @@ const textureMap = {
   items: textureLoader.load("/textures/room/denoised_items.webp"),
   foundation: textureLoader.load("/textures/room/denoised_foundation.webp"),
   photos: textureLoader.load("/textures/room/denoised_photos.webp"),
+  domain: textureLoader.load("/textures/room/denoised_domain.webp"),
 };
+
 Object.keys(textureMap).forEach((key) => {
   textureMap[key].flipY = false;
   textureMap[key].colorSpace = THREE.SRGBColorSpace;
 });
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xFFFFFF);
 
 window.addEventListener("mousemove", (event) => {
   pointer.x = (event.clientX / sizes.width) * 2 - 1;
 	pointer.y = -(event.clientY / sizes.height) * 2 + 1;
 });
 
-window.addEventListener("click", (event) => {
+window.addEventListener("click", (event) => { ///// TODO
   if(currentIntersects.length > 0){
     const object = currentIntersects[0].object;
   }
@@ -63,7 +64,8 @@ window.addEventListener("click", (event) => {
 	pointer.y = -(event.clientY / sizes.height) * 2 + 1;
 });
 
-loader.load("/models/Room_Portfolio-v1.glb", (glb) => {
+/* Load all textures into the scene */
+loader.load("/models/Room_Portfolio-v2.glb", (glb) => {
   glb.scene.traverse((child) => {
     if(child.isMesh){
       if(child.name.includes("PC_Glass")){
@@ -87,8 +89,11 @@ loader.load("/models/Room_Portfolio-v1.glb", (glb) => {
         else if(child.name.includes("Paintings")){
           matchedTexture = textureMap.photos;
         }
-        else if(!child.name.includes("Items_Merged")){
-          raycasterObjs.push(child); // interactive objects
+        else if(child.name.includes("Domain")){
+          matchedTexture = textureMap.domain;
+        }
+        else if(!child.name.includes("Items_Merged")  || child.name.includes("Button")){
+          raycasterObjs.push(child); // add interactivity to some objects
           child.userData.initialScale = new THREE.Vector3().copy(child.scale);
           child.userData.initialRotation  = new THREE.Euler().copy(child.rotation);
           child.userData.initialPosition = new THREE.Vector3().copy(child.position);
@@ -99,34 +104,32 @@ loader.load("/models/Room_Portfolio-v1.glb", (glb) => {
       }
       if(child.material.map){
         child.material.map.minFilter = THREE.LinearFilter;
-      }
-      
+      } 
     }
   }); 
-    scene.add(glb.scene);
+  scene.add(glb.scene);
 });
 
 const camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.1, 1000);
-camera.position.set(8, 9, 10);
+camera.position.set(12, 6, 16);
 
 const renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true});
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));  
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.minDistance = 0;
-controls.maxDistance = 20;
+controls.minDistance = 5;
+controls.maxDistance = 30;
 
 controls.minPolarAngle = 0;
 controls.maxPolarAngle = Math.PI / 2;
 controls.minAzimuthAngle = 0;
 controls.maxAzimuthAngle = Math.PI / 2;
 
-
 controls.enableDamping = true; 
 controls.dampingFactor = 0.05;
+controls.target.set(1, 2, 0);
 controls.update();
-controls.target.set(0, 4, 0);
 
 window.addEventListener("resize", () => {
   controls.update();
@@ -141,7 +144,7 @@ window.addEventListener("resize", () => {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
 });
 
-function playAnimation(object, isActive){
+function animate(object, isActive){
   gsap.killTweensOf(object.scale);
   gsap.killTweensOf(object.rotation);
   gsap.killTweensOf(object.position);
@@ -209,9 +212,9 @@ const render = () => {
     if(!currIntersectObj.name.includes("Items_Merged")){
       if(currIntersectObj !== currActiveObject){
         if(currActiveObject){ // on another object, move first one down
-          playAnimation(currActiveObject, false);
+          animate(currActiveObject, false);
         }
-        playAnimation(currIntersectObj, true);
+        animate(currIntersectObj, true);
         currActiveObject = currIntersectObj;
       }
     }
@@ -225,7 +228,7 @@ const render = () => {
   }
   else{
     if(currActiveObject){ // on another object, move first one down
-      playAnimation(currActiveObject, false);
+      animate(currActiveObject, false);
       currActiveObject = null;
     }
       document.body.style.cursor = "default";
